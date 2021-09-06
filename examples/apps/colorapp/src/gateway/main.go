@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math"
 	"net"
@@ -14,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/gateway/rpc/service"
 	"github.com/pkg/errors"
 )
 
@@ -123,23 +123,13 @@ func getColorFromColorTeller(request *http.Request) (string, error) {
 	}
 
 	client := xray.Client(&http.Client{})
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s", colorTellerEndpoint), nil)
+	colorTellerClient := service.NewColortellerServiceJSONClient(fmt.Sprintf("http://%s", colorTellerEndpoint), client)
+	msg, err := colorTellerClient.GetColor(request.Context(), &service.Empty{})
 	if err != nil {
 		return "-n/a-", err
 	}
 
-	resp, err := client.Do(req.WithContext(request.Context()))
-	if err != nil {
-		return "-n/a-", err
-	}
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "-n/a-", err
-	}
-
-	color := strings.TrimSpace(string(body))
+	color := strings.TrimSpace(string(msg.Value))
 	if len(color) < 1 {
 		return "-n/a-", errors.New("Empty response from colorTeller")
 	}

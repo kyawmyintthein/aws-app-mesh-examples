@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package aws.gateway;
+option go_package = "rpc/service";
+
+
+service GatewayService {
+  rpc GetColor(Empty) returns (Message);
+  rpc ClearColor(Empty) returns (Message);
+  rpc TCPEcho(Empty) returns (Empty);
+  rpc Ping(Empty) returns (Empty);
+}
+
+message Message {
+  string value = 1; 
+}
+
+message Empty {}

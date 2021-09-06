@@ -1,6 +1,6 @@
 FROM golang:1-stretch as builder
 ARG GO_PROXY=https://proxy.golang.org
-WORKDIR /go/src/github.com/aws/aws-app-mesh-examples/colorapp/gateway
+WORKDIR /go/src/github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/gateway
 
 # Force the go compiler to use modules.
 ENV GO111MODULE=on

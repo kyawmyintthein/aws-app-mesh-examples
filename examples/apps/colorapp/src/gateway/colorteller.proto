@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package aws.colorteller;
+option go_package = "rpc/service";
+
+
+service ColortellerService {
+  rpc GetColor(Empty) returns (Message);
+  rpc GetStage(Empty) returns (Message);
+  rpc Ping(Empty) returns (Empty);
+}
+
+message Message {
+  string value = 1; 
+}
+
+message Empty {}

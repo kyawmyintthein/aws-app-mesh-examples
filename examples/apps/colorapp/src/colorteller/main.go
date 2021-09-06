@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/teller/rpc/service"
 )
 
 const defaultPort = "8080"
@@ -41,21 +43,28 @@ func getStage() string {
 }
 
 type colorHandler struct{}
-func (h *colorHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	log.Println("color requested, responding with", getColor())
-	fmt.Fprint(writer, getColor())
+
+func NewColorHandler() service.ColortellerService {
+	return &colorHandler{}
 }
 
-type pingHandler struct{}
-func (h *pingHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (h *colorHandler) GetColor(ctx context.Context, empty *service.Empty) (*service.Message, error) {
+	return &service.Message{Value: getColor()}, nil
+}
+
+func (h *colorHandler) GetStage(ctx context.Context, empty *service.Empty) (*service.Message, error) {
+	return &service.Message{Value: getStage()}, nil
+}
+
+func (h *colorHandler) Ping(ctx context.Context, empty *service.Empty) (*service.Empty, error) {
 	log.Println("ping requested, reponding with HTTP 200")
-	writer.WriteHeader(http.StatusOK)
+	return &service.Empty{}, nil
 }
 
 func main() {
 	log.Println("starting server, listening on port " + getServerPort())
+	server := NewColorHandler()
+	twirpHandler := service.NewColortellerServiceServer(server, nil)
 	xraySegmentNamer := xray.NewFixedSegmentNamer(fmt.Sprintf("%s-colorteller-%s", getStage(), getColor()))
-	http.Handle("/", xray.Handler(xraySegmentNamer, &colorHandler{}))
-	http.Handle("/ping", xray.Handler(xraySegmentNamer, &pingHandler{}))
-	http.ListenAndServe(":"+getServerPort(), nil)
+	http.ListenAndServe(":"+getServerPort(), xray.Handler(xraySegmentNamer, twirpHandler))
 }
