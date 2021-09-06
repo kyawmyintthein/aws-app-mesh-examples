@@ -1,18 +1,18 @@
 package main
 
 import (
-	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math"
-	"net"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 
 	"github.com/aws/aws-xray-sdk-go/xray"
+	"github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/gateway/rpc/frontservice"
 	"github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/gateway/rpc/service"
 	"github.com/pkg/errors"
 )
@@ -53,12 +53,14 @@ func getColorTellerEndpoint() (string, error) {
 
 type colorHandler struct{}
 
-func (h *colorHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	color, err := getColorFromColorTeller(request)
+func NewColorHandler() frontservice.GatewayService {
+	return &colorHandler{}
+}
+
+func (h *colorHandler) GetColor(ctx context.Context, empty *frontservice.Empty) (*frontservice.Message, error) {
+	color, err := getColorFromColorTeller(ctx)
 	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		writer.Write([]byte("500 - Unexpected Error"))
-		return
+		return &frontservice.Message{Color: color, Error: err.Error()}, err
 	}
 
 	colorsMutext.Lock()
@@ -67,10 +69,9 @@ func (h *colorHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	addColor(color)
 	statsJson, err := json.Marshal(getRatios())
 	if err != nil {
-		fmt.Fprintf(writer, `{"color":"%s", "error":"%s"}`, color, err)
-		return
+		return &frontservice.Message{Color: color, Error: err.Error()}, err
 	}
-	fmt.Fprintf(writer, `{"color":"%s", "stats": %s}`, color, statsJson)
+	return &frontservice.Message{Color: color, Stats: string(statsJson)}, err
 }
 
 func addColor(color string) {
@@ -102,21 +103,7 @@ func getRatios() map[string]float64 {
 	return ratios
 }
 
-type clearColorStatsHandler struct{}
-
-func (h *clearColorStatsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	colorsMutext.Lock()
-	defer colorsMutext.Unlock()
-
-	colorsIdx = 0
-	for i := range colors {
-		colors[i] = ""
-	}
-
-	fmt.Fprint(writer, "cleared")
-}
-
-func getColorFromColorTeller(request *http.Request) (string, error) {
+func getColorFromColorTeller(ctx context.Context) (string, error) {
 	colorTellerEndpoint, err := getColorTellerEndpoint()
 	if err != nil {
 		return "-n/a-", err
@@ -124,7 +111,7 @@ func getColorFromColorTeller(request *http.Request) (string, error) {
 
 	client := xray.Client(&http.Client{})
 	colorTellerClient := service.NewColortellerServiceJSONClient(fmt.Sprintf("http://%s", colorTellerEndpoint), client)
-	msg, err := colorTellerClient.GetColor(request.Context(), &service.Empty{})
+	msg, err := colorTellerClient.GetColor(ctx, &service.Empty{})
 	if err != nil {
 		return "-n/a-", err
 	}
@@ -145,49 +132,24 @@ func getTCPEchoEndpoint() (string, error) {
 	return tcpEchoEndpoint, nil
 }
 
-type tcpEchoHandler struct{}
-
-func (h *tcpEchoHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	endpoint, err := getTCPEchoEndpoint()
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(writer, "tcpecho endpoint is not set")
-		return
-	}
-
-	log.Printf("Dialing tcp endpoint %s", endpoint)
-	conn, err := net.Dial("tcp", endpoint)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(writer, "Dial failed, err:%s", err.Error())
-		return
-	}
-	defer conn.Close()
-
-	strEcho := "Hello from gateway"
-	log.Printf("Writing '%s'", strEcho)
-	_, err = fmt.Fprintf(conn, strEcho)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(writer, "Write to server failed, err:%s", err.Error())
-		return
-	}
-
-	reply, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(writer, "Read from server failed, err:%s", err.Error())
-		return
-	}
-
-	fmt.Fprintf(writer, "Response from tcpecho server: %s", reply)
+func (h *colorHandler) TCPEcho(ctx context.Context, empty *frontservice.Empty) (*frontservice.Empty, error) {
+	return &frontservice.Empty{}, nil
 }
 
-type pingHandler struct{}
+func (h *colorHandler) Ping(ctx context.Context, empty *frontservice.Empty) (*frontservice.Empty, error) {
+	return &frontservice.Empty{}, nil
+}
 
-func (h *pingHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	log.Println("ping requested, reponding with HTTP 200")
-	writer.WriteHeader(http.StatusOK)
+func (h *colorHandler) ClearColor(ctx context.Context, empty *frontservice.Empty) (*frontservice.Message, error) {
+	colorsMutext.Lock()
+	defer colorsMutext.Unlock()
+
+	colorsIdx = 0
+	for i := range colors {
+		colors[i] = ""
+	}
+
+	return &frontservice.Message{Color: "cleared"}, nil
 }
 
 func main() {
@@ -206,10 +168,7 @@ func main() {
 	log.Println("Using tcp-echo at " + tcpEchoEndpoint)
 
 	xraySegmentNamer := xray.NewFixedSegmentNamer(fmt.Sprintf("%s-gateway", getStage()))
-
-	http.Handle("/color", xray.Handler(xraySegmentNamer, &colorHandler{}))
-	http.Handle("/color/clear", xray.Handler(xraySegmentNamer, &clearColorStatsHandler{}))
-	http.Handle("/tcpecho", xray.Handler(xraySegmentNamer, &tcpEchoHandler{}))
-	http.Handle("/ping", xray.Handler(xraySegmentNamer, &pingHandler{}))
-	log.Fatal(http.ListenAndServe(":"+getServerPort(), nil))
+	server := NewColorHandler()
+	twirpHandler := frontservice.NewGatewayServiceServer(server, nil)
+	http.ListenAndServe(":"+getServerPort(), xray.Handler(xraySegmentNamer, twirpHandler))
 }

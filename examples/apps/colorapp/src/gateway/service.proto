@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package aws.gateway;
-option go_package = "rpc/service";
+option go_package = "rpc/frontservice";
 
 
 service GatewayService {
@@ -12,7 +12,9 @@ service GatewayService {
 }
 
 message Message {
-  string value = 1; 
+  string color = 1; 
+  string stats = 2;
+  string error = 3;
 }
 
 message Empty {}
