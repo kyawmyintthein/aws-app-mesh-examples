@@ -11,6 +11,8 @@ import (
 	"github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/teller/rpc/service"
 	"github.com/sirupsen/logrus"
 	"github.com/twitchtv/twirp"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 )
 
 const defaultPort = "8080"
@@ -68,7 +70,12 @@ func main() {
 	server := NewColorHandler()
 	twirpHandler := service.NewColortellerServiceServer(server, NewXrayServerHooks())
 	xraySegmentNamer := xray.NewFixedSegmentNamer(fmt.Sprintf("%s-colorteller-%s", getStage(), getColor()))
-	http.ListenAndServe(":"+getServerPort(), xray.Handler(xraySegmentNamer, twirpHandler))
+	h2s := &http2.Server{}
+	h1s := &http.Server{
+		Addr:    ":" + getServerPort(),
+		Handler: h2c.NewHandler(xray.Handler(xraySegmentNamer, twirpHandler), h2s),
+	}
+	log.Fatal(h1s.ListenAndServe())
 }
 
 func NewXrayServerHooks() *twirp.ServerHooks {

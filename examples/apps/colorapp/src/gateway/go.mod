@@ -11,6 +11,6 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/twitchtv/twirp v8.1.0+incompatible
-	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980 // indirect
+	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	google.golang.org/protobuf v1.27.1
 )

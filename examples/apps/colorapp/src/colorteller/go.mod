@@ -11,5 +11,6 @@ require (
 	github.com/prometheus/client_golang v1.1.0
 	github.com/sirupsen/logrus v1.2.0
 	github.com/twitchtv/twirp v8.1.0+incompatible
+	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	google.golang.org/protobuf v1.27.1
 )

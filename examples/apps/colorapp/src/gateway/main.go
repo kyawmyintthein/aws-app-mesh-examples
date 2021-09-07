@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
 	"math"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -15,6 +17,7 @@ import (
 	"github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/gateway/rpc/frontservice"
 	"github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/gateway/rpc/service"
 	"github.com/pkg/errors"
+	"golang.org/x/net/http2"
 
 	"github.com/sirupsen/logrus"
 	"github.com/twitchtv/twirp"
@@ -111,8 +114,17 @@ func getColorFromColorTeller(ctx context.Context) (string, error) {
 	if err != nil {
 		return "-n/a-", err
 	}
-
-	client := xray.Client(&http.Client{})
+	httpclient := &http.Client{
+		Transport: &http2.Transport{
+			// Allow non-https urls
+			AllowHTTP: true,
+			// Make the transport *not-actually* use TLS
+			DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+				return net.Dial(network, addr)
+			},
+		},
+	}
+	client := xray.Client(httpclient)
 	colorTellerClient := service.NewColortellerServiceProtobufClient(fmt.Sprintf("http://%s", colorTellerEndpoint), client)
 	msg, err := colorTellerClient.GetColor(ctx, &service.Empty{})
 	if err != nil {
