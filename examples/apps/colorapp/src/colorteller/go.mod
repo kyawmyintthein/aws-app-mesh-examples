@@ -9,6 +9,7 @@ require (
 	github.com/cihub/seelog v0.0.0-20151216151435-d2c6e5aa9fbf // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/prometheus/client_golang v1.1.0
+	github.com/sirupsen/logrus v1.2.0
 	github.com/twitchtv/twirp v8.1.0+incompatible
 	google.golang.org/protobuf v1.27.1
 )
