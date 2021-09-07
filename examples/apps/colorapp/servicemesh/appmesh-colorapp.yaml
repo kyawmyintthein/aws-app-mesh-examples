@@ -23,7 +23,7 @@ Resources:
         Listeners:
           - PortMapping:
               Port: 9080
-              Protocol: http
+              Protocol: http2
             HealthCheck:
               Protocol: http
               Path: "/twirp/aws.colorteller.ColortellerService/Ping"
@@ -44,7 +44,7 @@ Resources:
         Listeners:
           - PortMapping:
               Port: 9080
-              Protocol: http
+              Protocol: http2
             HealthCheck:
               Protocol: http
               Path: "/twirp/aws.colorteller.ColortellerService/Ping"
@@ -65,7 +65,7 @@ Resources:
         Listeners:
           - PortMapping:
               Port: 9080
-              Protocol: http
+              Protocol: http2
             HealthCheck:
               Protocol: http
               Path: "/twirp/aws.colorteller.ColortellerService/Ping"
@@ -86,7 +86,7 @@ Resources:
         Listeners:
           - PortMapping:
               Port: 9080
-              Protocol: http
+              Protocol: http2
             HealthCheck:
               Protocol: http
               Path: "/twirp/aws.colorteller.ColortellerService/Ping"
@@ -107,7 +107,7 @@ Resources:
         Listeners:
           - PortMapping:
               Port: 9080
-              Protocol: http
+              Protocol: http2
 
   ColorTellerRoute:
     Type: AWS::AppMesh::Route

@@ -110,7 +110,7 @@ func getColorFromColorTeller(ctx context.Context) (string, error) {
 	}
 
 	client := xray.Client(&http.Client{})
-	colorTellerClient := service.NewColortellerServiceJSONClient(fmt.Sprintf("http://%s", colorTellerEndpoint), client)
+	colorTellerClient := service.NewColortellerServiceProtobufClient(fmt.Sprintf("http://%s", colorTellerEndpoint), client)
 	msg, err := colorTellerClient.GetColor(ctx, &service.Empty{})
 	if err != nil {
 		return "-n/a-", err
