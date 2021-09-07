@@ -25,7 +25,8 @@ Resources:
               Port: 9080
               Protocol: http2
             HealthCheck:
-              Protocol: http
+              Protocol: http2
+              Port: 9080
               Path: "/twirp/aws.colorteller.ColortellerService/Ping"
               HealthyThreshold: 2
               UnhealthyThreshold: 2
@@ -46,7 +47,8 @@ Resources:
               Port: 9080
               Protocol: http2
             HealthCheck:
-              Protocol: http
+              Protocol: http2
+              Port: 9080
               Path: "/twirp/aws.colorteller.ColortellerService/Ping"
               HealthyThreshold: 2
               UnhealthyThreshold: 2
@@ -67,7 +69,8 @@ Resources:
               Port: 9080
               Protocol: http2
             HealthCheck:
-              Protocol: http
+              Port: 9080
+              Protocol: http2
               Path: "/twirp/aws.colorteller.ColortellerService/Ping"
               HealthyThreshold: 2
               UnhealthyThreshold: 2
@@ -88,7 +91,8 @@ Resources:
               Port: 9080
               Protocol: http2
             HealthCheck:
-              Protocol: http
+              Port: 9080
+              Protocol: http2
               Path: "/twirp/aws.colorteller.ColortellerService/Ping"
               HealthyThreshold: 2
               UnhealthyThreshold: 2
