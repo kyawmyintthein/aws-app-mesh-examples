@@ -172,7 +172,7 @@ func main() {
 
 	xraySegmentNamer := xray.NewFixedSegmentNamer(fmt.Sprintf("%s-gateway", getStage()))
 	server := NewColorHandler()
-	twirpHandler := frontservice.NewGatewayServiceServer(server, nil)
+	twirpHandler := frontservice.NewGatewayServiceServer(server, NewXrayServerHooks())
 	http.ListenAndServe(":"+getServerPort(), xray.Handler(xraySegmentNamer, twirpHandler))
 }
 
