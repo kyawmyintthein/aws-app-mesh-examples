@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"sync/atomic"
 
 	"github.com/aws/aws-xray-sdk-go/xray"
-	"github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/teller/rpc/service"
+	"github.com/kyawmyintthein/aws-app-mesh-examples/colorapp/teller/rpc/colorteller"
 	"github.com/sirupsen/logrus"
 	"github.com/twitchtv/twirp"
 	"golang.org/x/net/http2"
@@ -48,32 +50,34 @@ func getStage() string {
 
 type colorHandler struct{}
 
-func NewColorHandler() service.ColortellerService {
+func NewColorHandler() colorteller.ColortellerService {
 	return &colorHandler{}
 }
 
-func (h *colorHandler) GetColor(ctx context.Context, empty *service.Empty) (*service.Message, error) {
-	return &service.Message{Value: getColor()}, nil
+func (h *colorHandler) GetColor(ctx context.Context, empty *colorteller.Empty) (*colorteller.Message, error) {
+	return &colorteller.Message{Value: getColor()}, nil
 }
 
-func (h *colorHandler) GetStage(ctx context.Context, empty *service.Empty) (*service.Message, error) {
-	return &service.Message{Value: getStage()}, nil
+func (h *colorHandler) GetStage(ctx context.Context, empty *colorteller.Empty) (*colorteller.Message, error) {
+	return &colorteller.Message{Value: getStage()}, nil
 }
 
-func (h *colorHandler) Ping(ctx context.Context, empty *service.Empty) (*service.Empty, error) {
+func (h *colorHandler) Ping(ctx context.Context, empty *colorteller.Empty) (*colorteller.Empty, error) {
 	log.Println("ping requested, reponding with HTTP 200")
-	return &service.Empty{}, nil
+	return &colorteller.Empty{}, nil
 }
 
 func main() {
 	log.Println("starting server, listening on port " + getServerPort())
 	server := NewColorHandler()
-	twirpHandler := service.NewColortellerServiceServer(server, NewXrayServerHooks())
+	twirpHandler := colorteller.NewColortellerServiceServer(server, twirp.WithServerPathPrefix("/rz"), NewXrayServerHooks())
 	xraySegmentNamer := xray.NewFixedSegmentNamer(fmt.Sprintf("%s-colorteller-%s", getStage(), getColor()))
+	var cw ConnectionWatcher
 	h2s := &http2.Server{}
 	h1s := &http.Server{
-		Addr:    ":" + getServerPort(),
-		Handler: h2c.NewHandler(xray.Handler(xraySegmentNamer, twirpHandler), h2s),
+		Addr:      ":" + getServerPort(),
+		Handler:   h2c.NewHandler(xray.Handler(xraySegmentNamer, twirpHandler), h2s),
+		ConnState: cw.OnStateChange,
 	}
 	log.Fatal(h1s.ListenAndServe())
 }
@@ -111,4 +115,28 @@ func NewXrayServerHooks() *twirp.ServerHooks {
 	}
 
 	return hooks
+}
+
+type ConnectionWatcher struct {
+	n int64
+}
+
+// OnStateChange records open connections in response to connection
+// state changes. Set net/http Server.ConnState to this method
+// as value.
+func (cw *ConnectionWatcher) OnStateChange(conn net.Conn, state http.ConnState) {
+	switch state {
+	case http.StateNew:
+		atomic.AddInt64(&cw.n, 1)
+	case http.StateHijacked, http.StateClosed:
+		atomic.AddInt64(&cw.n, -1)
+	}
+	log.Printf("connection count : %d \n", int(atomic.LoadInt64(&cw.n)))
+}
+
+// Count returns the number of connections at the time
+// the call.
+func (cw *ConnectionWatcher) Count() int {
+	return int(atomic.LoadInt64(&cw.n))
+
 }

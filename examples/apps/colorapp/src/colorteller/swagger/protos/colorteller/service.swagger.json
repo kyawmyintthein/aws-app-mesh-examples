@@ -1,0 +1,110 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "protos/colorteller/service.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/twirp/aws.colorteller.ColortellerService/GetColor": {
+      "post": {
+        "operationId": "GetColor",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/colortellerMessage"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/colortellerEmpty"
+            }
+          }
+        ],
+        "tags": [
+          "ColortellerService"
+        ]
+      }
+    },
+    "/twirp/aws.colorteller.ColortellerService/GetStage": {
+      "post": {
+        "operationId": "GetStage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/colortellerMessage"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/colortellerEmpty"
+            }
+          }
+        ],
+        "tags": [
+          "ColortellerService"
+        ]
+      }
+    },
+    "/twirp/aws.colorteller.ColortellerService/Ping": {
+      "post": {
+        "operationId": "Ping",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/colortellerEmpty"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/colortellerEmpty"
+            }
+          }
+        ],
+        "tags": [
+          "ColortellerService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "colortellerEmpty": {
+      "type": "object"
+    },
+    "colortellerMessage": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

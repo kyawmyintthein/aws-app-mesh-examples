@@ -1,0 +1,70 @@
+{
+    "version": 2,
+    "timeout": "3000ms",
+    "cache_ttl": "300s",
+    "debug": true,
+    "port": 8080,
+    "extra_config": {
+        "github_com/devopsfaith/krakend-gologging": {
+            "level": "DEBUG",
+            "prefix": "[KRAKEND]",
+            "syslog": false,
+            "stdout": true,
+            "format": "logstash"
+        },
+        "github_com/devopsfaith/krakend-logstash": {
+            "enabled": true
+        }
+    },
+    "endpoints": [{
+            "endpoint": "/color",
+            "method": "GET",
+            "output_encoding": "json",
+            "querystring_params": [
+                "*"
+            ],
+            "headers_to_pass": [
+                "*"
+            ],
+            "extra_config": {
+                "twirp_service_identifier": "rpc.colorteller.ColortellerService"
+            },
+            "backend": [{
+                "url_pattern": "/rz/aws.colorteller.ColortellerService/GetColor",
+                "encoding": "json",
+                "sd": "custom",
+                "method": "POST",
+                "extra_config": {
+                    "twirp_service_identifier": "rpc.colorteller.ColortellerService"
+                },
+                "host": [
+                    "http://localhost:8083"
+
+                ],
+                "disable_host_sanitize": true
+            }]
+        },
+        {
+            "endpoint": "/stage",
+            "method": "GET",
+            "output_encoding": "json",
+            "querystring_params": [
+                "*"
+            ],
+            "headers_to_pass": [
+                "*"
+            ],
+            "backend": [{
+                "url_pattern": "/rz/aws.colorteller.ColortellerService/GetStage",
+                "encoding": "json",
+                "sd": "custom",
+                "method": "POST",
+                "host": [
+                    "http://localhost:8083"
+
+                ],
+                "disable_host_sanitize": true
+            }]
+        }
+    ]
+}
